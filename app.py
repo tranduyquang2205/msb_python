@@ -19,7 +19,8 @@ class LoginDetails(BaseModel):
 @app.post('/login', tags=["login"])
 def login_api(input: LoginDetails):
     try:
-        session_raw = msb.login(input.username, input.password)
+        msb = MSB(input.username, input.password,input.account_number)
+        session_raw = msb.login()
         return (session_raw)
     except Exception as e:
         response = str(e)
@@ -30,8 +31,8 @@ def login_api(input: LoginDetails):
 @app.post('/get_balance', tags=["get_balance"])
 def get_balance_api(input: LoginDetails):
     try:
-        accounts_list = msb.get_accounts_list()
-        balance = msb.get_balance(input.account_number)
+        msb = MSB(input.username, input.password,input.account_number)
+        balance = msb.get_balance()
         return (balance)
     except Exception as e:
         response = str(e)
@@ -48,7 +49,8 @@ class Transactions(BaseModel):
 @app.post('/get_transactions', tags=["get_transactions"])
 def get_transactions_api(input: Transactions):
     try:
-        transactions = msb.get_transactions(input.account_number,input.from_date)
+        msb = MSB(input.username, input.password,input.account_number)
+        transactions = msb.get_transactions(input.from_date)
         return (transactions)
     except Exception as e:
         response = str(e)

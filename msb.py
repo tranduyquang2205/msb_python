@@ -6,11 +6,15 @@ from requests.cookies import RequestsCookieJar
 import base64
 import re
 class MSB:
-    def __init__(self):
+    def __init__(self,username, password, account_number):
         self.keyanticaptcha = "b8246038ce1540888c4314a6c043dcae"
         self.cookies = RequestsCookieJar()
         self.session = requests.Session()
         self.tokenNo = ''
+        self.password = password
+        self.username = username
+        self.account_number = account_number
+        self.is_login = False
     def check_error_message(self,html_content):
         pattern = r'<span style="color: black"><strong>(.*?)</strong></span>'
         match = re.search(pattern, html_content)
@@ -19,7 +23,7 @@ class MSB:
         pattern = r'src="/IBSRetail/servlet/CmsImageServlet\?attachmentId=1&&tokenNo=([a-f0-9-]+)"'
         match = re.search(pattern, html_content)
         return match.group(1) if match else None
-    def login(self, username, password):
+    def login(self):
         url = "https://ebank.msb.com.vn/IBSRetail/Request?&dse_sessionId=s2xe-FimkVx4j9lPeztr8eF&dse_applicationId=-1&dse_pageId=1&dse_operationName=retailIndexProc&dse_errorPage=error_page.jsp&dse_processorState=initial&dse_nextEventName=start"
 
         payload = {}
@@ -66,7 +70,7 @@ class MSB:
             task = self.createTaskCaptcha(base64_captcha_img)
             time.sleep(1)
             captchaText = self.checkProgressCaptcha(json.loads(task)['taskId'])
-            payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode='+username+'&_userName='+username+'&_password='+password+'&_verifyCode='+captchaText
+            payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode='+self.username+'&_userName='+self.username+'&_password='+self.password+'&_verifyCode='+captchaText
             # payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode=11111&_userName=11111&_password=2222&_verifyCode=8461'            
             headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
@@ -168,12 +172,17 @@ class MSB:
 
         return json.loads(response.text)
 
-    def get_balance(self,account_number):
+    def get_balance(self):
+        if not self.is_login:
+            login = self.login()
+            if not login['success']:
+                return login
         accounts_list = self.get_accounts_list()
+        print(accounts_list)
         for account in accounts_list.get('data', []):
-            if account.get('acctNo') == account_number:
+            if account.get('acctNo') == self.account_number:
                 return {
-                    'account_number':account_number,
+                    'account_number':self.account_number,
                     'available_balance':account.get('availableBalance')
                 }
         return None
@@ -237,8 +246,8 @@ class MSB:
         response = self.session.get(url, headers=headers)
         return base64.b64encode(response.content).decode('utf-8')
 
-    def get_transactions(self,account_number,fromDate):
-        payload = "fromDate="+fromDate+"&acctNo="+account_number+"&page=1&tokenNo="+self.tokenNo+"&lang=vi_VN"
+    def get_transactions(self,fromDate):
+        payload = "fromDate="+fromDate+"&acctNo="+self.account_number+"&page=1&tokenNo="+self.tokenNo+"&lang=vi_VN"
         headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
         'Accept': '*/*',
@@ -259,20 +268,20 @@ class MSB:
 
         return(response.text)
 
-msb = MSB()
+
 username = "0972841903"
 password = "Khai4455@"
 fromDate="2024-04-12"
 account_number = "02001016649139"
-
-session_raw = msb.login(username, password)
+msb = MSB(username, password,account_number)
+session_raw = msb.login()
 print(session_raw)
 
 # accounts_list = msb.get_accounts_list()
 # print(accounts_list)
 
-# balance = msb.get_balance(account_number)
-# print(balance)
+balance = msb.get_balance()
+print(balance)
 
-# history = msb.get_transactions(account_number,fromDate)
+# history = msb.get_transactions(fromDate)
 # print(history)
