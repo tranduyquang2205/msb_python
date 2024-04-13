@@ -117,6 +117,12 @@ class MSB:
                             'success': False,
                             'message': check_error_message
                             }
+                if 'Mã Tiếp tục không hợp lệ' in check_error_message:
+                        return {
+                            'code': 422,
+                            'success': False,
+                            'message': check_error_message
+                            }
                 return {
                     'code': 400,
                     'success': False,
@@ -132,6 +138,12 @@ class MSB:
                         'tokenNo': self.tokenNo
                     }
                     
+                }
+        else:
+            return {
+                    'code': 520,
+                    'success': False,
+                    'message': "Unknown Error!"
                 }
 
     def get_accounts_list(self):

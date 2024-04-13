@@ -60,6 +60,11 @@
         "message": "Blocked account with negative balances!"
     },
     {
+        "code": 422,
+        "success": false,
+        "message": "Mã Tiếp tục không hợp lệ!"
+    },
+    {
         "success": false,
         "code": 500,
         "message": "Internal Server Error!"
