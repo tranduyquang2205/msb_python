@@ -111,6 +111,12 @@ class MSB:
             response = self.session.get(url2, headers=headers, data=payload)
             check_error_message = self.check_error_message(response.text)
             if check_error_message:
+                if 'Tài khoản hoặc mật khẩu không đúng' in check_error_message:
+                        return {
+                            'code': 444,
+                            'success': False,
+                            'message': check_error_message
+                            }
                 return {
                     'code': 400,
                     'success': False,
@@ -122,7 +128,10 @@ class MSB:
                     'code': 200,
                     'success': True,
                     'message': 'Đăng nhập thành công',
-                    'tokenNo': self.tokenNo
+                    'data':{
+                        'tokenNo': self.tokenNo
+                    }
+                    
                 }
 
     def get_accounts_list(self):
