@@ -134,6 +134,7 @@ class MSB:
                 }
             else:
                 self.tokenNo = self.extract_tokenNo(response.text)
+                self.is_login = True
                 return {
                     'code': 200,
                     'success': True,
@@ -178,14 +179,17 @@ class MSB:
             if not login['success']:
                 return login
         accounts_list = self.get_accounts_list()
-        print(accounts_list)
-        for account in accounts_list.get('data', []):
-            if account.get('acctNo') == self.account_number:
-                return {
-                    'account_number':self.account_number,
-                    'available_balance':account.get('availableBalance')
-                }
-        return None
+        if 'data' in accounts_list:
+            for account in accounts_list.get('data', []):
+                if account.get('acctNo') == self.account_number:
+                    return {'code':200,'success': True, 'message': 'Thành công',
+                                    'data':{
+                                        'account_number':self.account_number,
+                                        'balance':int(account.get('availableBalance'))
+                            }}
+            return {'code':404,'success': False, 'message': 'account_number not found!'} 
+        else:
+            return {'code':520 ,'success': False, 'message': 'Unknown Error!'} 
 
 
     def createTaskCaptcha1(self, base64_img):
@@ -247,6 +251,10 @@ class MSB:
         return base64.b64encode(response.content).decode('utf-8')
 
     def get_transactions(self,fromDate):
+        if not self.is_login:
+            login = self.login()
+            if not login['success']:
+                return login
         payload = "fromDate="+fromDate+"&acctNo="+self.account_number+"&page=1&tokenNo="+self.tokenNo+"&lang=vi_VN"
         headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
@@ -265,23 +273,40 @@ class MSB:
         }
 
         response = self.session.post("https://ebank.msb.com.vn/IBSRetail/history/byAccount.do", headers=headers, data=payload)
+        
+        if response.status_code == 401:
+            return {'code':401,'success': False, 'message': 'Unauthorized!'}
+        
+        if response.status_code != 200:
+            return {'code':response.status_code,'success': False, 'message': 'Unknown error!'}
+        try:
+            result = response.json()
+        except json.decoder.JSONDecodeError:
+            result = {
+                "status" : "500"
+            }
+        if result['status'] == "200" and 'data' in result:
+                return {'code':200,'success': True, 'message': 'Thành công',
+                            'data':{
+                                'transactions':result['data']['history'],
+                    }}
+        else:
+                return {'code':400,'success': False, 'message': 'Bad request!'}
 
-        return(response.text)
 
-
-username = "0972841903"
-password = "Khai4455@"
-fromDate="2024-04-12"
-account_number = "02001016649139"
-msb = MSB(username, password,account_number)
-session_raw = msb.login()
-print(session_raw)
+# username = "0972841903"
+# password = "Khai4455@"
+# fromDate="2024-05-13"
+# account_number = "02001016649139"
+# msb = MSB(username, password,account_number)
+# session_raw = msb.login()
+# print(session_raw)
 
 # accounts_list = msb.get_accounts_list()
 # print(accounts_list)
 
-balance = msb.get_balance()
-print(balance)
+# balance = msb.get_balance()
+# print(balance)
 
 # history = msb.get_transactions(fromDate)
 # print(history)
