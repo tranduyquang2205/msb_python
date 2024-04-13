@@ -6,7 +6,6 @@ import sys
 import traceback
 from api_response import APIResponse
 
-msb = MSB()
 app = FastAPI()
 @app.get("/")
 def read_root():
