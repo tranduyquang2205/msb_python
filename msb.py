@@ -112,12 +112,14 @@ class MSB:
             check_error_message = self.check_error_message(response.text)
             if check_error_message:
                 return {
+                    'code': 400,
                     'success': False,
                     'message': check_error_message
                 }
             else:
                 self.tokenNo = self.extract_tokenNo(response.text)
                 return {
+                    'code': 200,
                     'success': True,
                     'message': 'Đăng nhập thành công',
                     'tokenNo': self.tokenNo
@@ -236,14 +238,14 @@ class MSB:
 
         return(response.text)
 
-# msb = MSB()
-# username = "0972841903"
-# password = "Khai4455@"
-# fromDate="2024-04-12"
-# account_number = "02001016649139"
+msb = MSB()
+username = "0972841903"
+password = "Khai4455@"
+fromDate="2024-04-12"
+account_number = "02001016649139"
 
-# session_raw = msb.login(username, password)
-# print(session_raw)
+session_raw = msb.login(username, password)
+print(session_raw)
 
 # accounts_list = msb.get_accounts_list()
 # print(accounts_list)
@@ -252,4 +254,4 @@ class MSB:
 # print(balance)
 
 # history = msb.get_transactions(account_number,fromDate)
-# print(history['data'][0])
+# print(history)
