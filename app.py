@@ -20,7 +20,7 @@ def login_api(input: LoginDetails):
     try:
         msb = MSB(input.username, input.password,input.account_number)
         session_raw = msb.login()
-        return (session_raw)
+        return APIResponse.json_format(session_raw)
     except Exception as e:
         response = str(e)
         print(traceback.format_exc())
@@ -32,7 +32,7 @@ def get_balance_api(input: LoginDetails):
     try:
         msb = MSB(input.username, input.password,input.account_number)
         balance = msb.get_balance()
-        return (balance)
+        return APIResponse.json_format(balance)
     except Exception as e:
         response = str(e)
         print(traceback.format_exc())
@@ -50,7 +50,7 @@ def get_transactions_api(input: Transactions):
     try:
         msb = MSB(input.username, input.password,input.account_number)
         transactions = msb.get_transactions(input.from_date)
-        return (transactions)
+        return APIResponse.json_format(transactions)
     except Exception as e:
         response = str(e)
         print(traceback.format_exc())
