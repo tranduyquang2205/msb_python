@@ -131,7 +131,7 @@ class MSB:
                         return {
                             'code': 449,
                             'success': False,
-                            'message': check_error_message
+                            'message': 'Blocked account!'
                             }
                 return {
                     'code': 400,
