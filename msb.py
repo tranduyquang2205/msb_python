@@ -127,6 +127,12 @@ class MSB:
                             'success': False,
                             'message': check_error_message
                             }
+                if 'Tài khoản của quý khách đã bị khóa' in check_error_message:
+                        return {
+                            'code': 449,
+                            'success': False,
+                            'message': check_error_message
+                            }
                 return {
                     'code': 400,
                     'success': False,
