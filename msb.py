@@ -67,9 +67,12 @@ class MSB:
             }
             response = self.session.get(url1, headers=headers, data=payload)
             base64_captcha_img = self.getCaptcha()
-            task = self.createTaskCaptcha(base64_captcha_img)
-            time.sleep(1)
-            captchaText = self.checkProgressCaptcha(json.loads(task)['taskId'])
+            result = self.createTaskCaptcha(base64_captcha_img)
+            # captchaText = self.checkProgressCaptcha(json.loads(task)['taskId'])
+            if 'prediction' in result and result['prediction']:
+                captchaText = result['prediction']
+            else:
+                return {"status": False, "msg": "Error solve captcha", "data": result}
             payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode='+self.username+'&_userName='+self.username+'&_password='+self.password+'&_verifyCode='+captchaText
             # payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode=11111&_userName=11111&_password=2222&_verifyCode=8461'            
             headers = {
@@ -176,8 +179,10 @@ class MSB:
         }
 
         response = self.session.post("https://ebank.msb.com.vn/IBSRetail/account/list.do", headers=headers, data=payload)
-
-        return json.loads(response.text)
+        try:
+            return json.loads(response.text)
+        except:
+            return None
 
     def get_balance(self):
         if not self.is_login:
@@ -207,30 +212,26 @@ class MSB:
         response = requests.post(url, data=data)
         return response.text
     def createTaskCaptcha(self, base64_img):
-            url = "https://api.anti-captcha.com/createTask"
-
-            payload = json.dumps({
-            "clientKey": "f3a44e66302c61ffec07c80f4732baf3",
-            "task": {
-                "type": "ImageToTextTask",
-                "body": base64_img,
-                "phrase": False,
-                "case": False,
-                "numeric": 0,
-                "math": False,
-                "minLength": 0,
-                "maxLength": 0
-            },
-            "softId": 0
-            })
-            headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-            }
-
-            response = requests.request("POST", url, headers=headers, data=payload)
-            print(response.text)
-            return(response.text)
+        url_1 = 'https://captcha.pay2world.vip//ibsr'
+        url_2 = 'https://captcha1.pay2world.vip//ibsr'
+        url_3 = 'https://captcha2.pay2world.vip//ibsr'
+        
+        payload = json.dumps({
+        "image_base64": base64_img
+        })
+        headers = {
+        'Content-Type': 'application/json'
+        }
+        
+        for _url in [url_1, url_2, url_3]:
+            try:
+                response = requests.request("POST", _url, headers=headers, data=payload, timeout=10)
+                if response.status_code in [404, 502]:
+                    continue
+                return json.loads(response.text)
+            except:
+                continue
+        return {}
 
     def checkProgressCaptcha(self, task_id):
         url = 'https://api.anti-captcha.com/getTaskResult'
@@ -300,19 +301,19 @@ class MSB:
                 return {'code':400,'success': False, 'message': 'Bad request!'}
 
 
-# username = "0972841903"
-# password = "Khai4455@"
-# fromDate="2024-05-13"
-# account_number = "02001016649139"
-# msb = MSB(username, password,account_number)
-# session_raw = msb.login()
-# print(session_raw)
+username = "0349206113"
+password = "Thach686868@"
+fromDate="2024-05-13"
+account_number = "80000174859"
+msb = MSB(username, password,account_number)
+session_raw = msb.login()
+print(session_raw)
 
-# accounts_list = msb.get_accounts_list()
-# print(accounts_list)
+accounts_list = msb.get_accounts_list()
+print(accounts_list)
 
-# balance = msb.get_balance()
-# print(balance)
+balance = msb.get_balance()
+print(balance)
 
-# history = msb.get_transactions(fromDate)
-# print(history)
+history = msb.get_transactions(fromDate)
+print(history)
