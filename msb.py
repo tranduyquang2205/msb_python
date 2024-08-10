@@ -299,21 +299,3 @@ class MSB:
                     }}
         else:
                 return {'code':400,'success': False, 'message': 'Bad request!'}
-
-
-username = "0349206113"
-password = "Thach686868@"
-fromDate="2024-05-13"
-account_number = "80000174859"
-msb = MSB(username, password,account_number)
-session_raw = msb.login()
-print(session_raw)
-
-accounts_list = msb.get_accounts_list()
-print(accounts_list)
-
-balance = msb.get_balance()
-print(balance)
-
-history = msb.get_transactions(fromDate)
-print(history)
