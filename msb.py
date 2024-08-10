@@ -20,9 +20,9 @@ class MSB:
         match = re.search(pattern, html_content)
         return match.group(1) if match else None
     def extract_tokenNo(self,html_content):
-        pattern = r'src="/IBSRetail/servlet/CmsImageServlet\?attachmentId=1&&tokenNo=([a-f0-9-]+)"'
+        pattern = r'src="/IBSRetail/servlet/CmsImageServlet\?attachmentId=(\d*)&&tokenNo=([a-f0-9-]+?)"'
         match = re.search(pattern, html_content)
-        return match.group(1) if match else None
+        return match.group(2) if match else None
     def login(self):
         url = "https://ebank.msb.com.vn/IBSRetail/Request?&dse_sessionId=s2xe-FimkVx4j9lPeztr8eF&dse_applicationId=-1&dse_pageId=1&dse_operationName=retailIndexProc&dse_errorPage=error_page.jsp&dse_processorState=initial&dse_nextEventName=start"
 
