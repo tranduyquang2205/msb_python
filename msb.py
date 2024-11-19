@@ -69,6 +69,8 @@ class MSB:
             base64_captcha_img = self.getCaptcha()
             result = self.createTaskCaptcha(base64_captcha_img)
             # captchaText = self.checkProgressCaptcha(json.loads(task)['taskId'])
+            print(base64_captcha_img)
+            print(result)
             if 'prediction' in result and result['prediction']:
                 captchaText = result['prediction']
             else:
@@ -212,7 +214,7 @@ class MSB:
         response = requests.post(url, data=data)
         return response.text
     def createTaskCaptcha(self, base64_img):
-        url_1 = 'https://captcha.pay2world.vip//ibsr'
+        url_1 = 'https://captcha2.pay2world.vip//ibsr'
         url_2 = 'https://captcha1.pay2world.vip//ibsr'
         url_3 = 'https://captcha2.pay2world.vip//ibsr'
         
@@ -257,12 +259,12 @@ class MSB:
         response = self.session.get(url, headers=headers)
         return base64.b64encode(response.content).decode('utf-8')
 
-    def get_transactions(self,fromDate):
+    def get_transactions(self,fromDate,toDate):
         if not self.is_login:
             login = self.login()
             if not login['success']:
                 return login
-        payload = "fromDate="+fromDate+"&acctNo="+self.account_number+"&page=1&tokenNo="+self.tokenNo+"&lang=vi_VN"
+        payload = "fromDate="+fromDate+"&toDate="+toDate+"&acctNo="+self.account_number+"&page=1&tokenNo="+self.tokenNo+"&lang=vi_VN"
         headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
         'Accept': '*/*',
@@ -298,4 +300,4 @@ class MSB:
                                 'transactions':result['data']['history'],
                     }}
         else:
-                return {'code':400,'success': False, 'message': 'Bad request!'}
+                return {'code':400,'success': False, 'message': 'Bad request!','data':result}
