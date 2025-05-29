@@ -366,7 +366,7 @@ class MSB:
                 }
         else:
             return {
-                    'code': 520,
+                    'code': 500,
                     'success': False,
                     'message': "Unknown Error!"
                 }
