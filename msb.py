@@ -368,7 +368,8 @@ class MSB:
             return {
                     'code': 500,
                     'success': False,
-                    'message': "Unknown Error!"
+                    'message': "Unknown Error!",
+                    'data': response
                 }
 
     def get_accounts_list(self):
