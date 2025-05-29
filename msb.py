@@ -25,8 +25,9 @@ class MSB:
         self.tokenNo = ''
         self.is_login = False
         self.time_login = time.time()
-        self.proxy_list = proxy_list
         self.current_proxy = None
+        self.proxy_list = proxy_list
+        
         self.proxy_failures = {}  # Track failures for each proxy
         self.proxy_cycle = None  # Initialize as None
         

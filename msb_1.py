@@ -335,7 +335,7 @@ class BNAK_MSB:
                 }
         else:
             return {
-                'code': 520,
+                'code': 500,
                 'success': False,
                 'message': "Unknown Error!"
             }
@@ -386,7 +386,7 @@ class BNAK_MSB:
             else:
                 self.is_login = False
                 self.save_data()
-                return {'code': 520, 'success': False, 'message': 'Unknown Error!'}
+                return {'code': 500, 'success': False, 'message': 'Unknown Error!'}
 
     def createTaskCaptcha1(self, base64_img):
         url = 'https://ecaptcha.sieuthicode.net/api/captcha/captchatext'
@@ -486,6 +486,6 @@ class BNAK_MSB:
             else:
                 self.is_login = False
                 self.save_data()
-                return {'code': 520, 'success': False, 'message': 'Unknown Error!'}
+                return {'code': 500, 'success': False, 'message': 'Unknown Error!'}
 
 
