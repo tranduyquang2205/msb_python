@@ -422,7 +422,7 @@ class MSB:
             else:
                 self.is_login = False
                 self.save_data()
-                return {'code': 520, 'success': False, 'message': 'Failed to get account list after retries'}
+                return {'code': 500, 'success': False, 'message': 'Failed to get account list after retries'}
 
     def createTaskCaptcha1(self, base64_img):
         url = 'https://ecaptcha.sieuthicode.net/api/captcha/captchatext'
@@ -526,5 +526,5 @@ class MSB:
             else:
                 self.is_login = False
                 self.save_data()
-                return {'code': 520, 'success': False, 'message': 'Failed to get transactions after retries'}
+                return {'code': 500, 'success': False, 'message': 'Failed to get transactions after retries'}
 
