@@ -34,6 +34,7 @@ class BNAK_MSB:
         self.proxy_list = proxy_list
         self.proxy_failures = {}  # Track failures for each proxy
         self.proxy_cycle = None  # Initialize as None
+        self.current_proxy = None
 
         if not os.path.exists(self.file):
             self.save_data()
