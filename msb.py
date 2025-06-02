@@ -9,6 +9,7 @@ import re
 import random
 from itertools import cycle
 import pickle
+import os
 
 class MSB:
     def __init__(self,username, password, account_number,proxy_list=None):
@@ -87,41 +88,15 @@ class MSB:
             # Reset proxy cycle with remaining proxies
             self._reset_proxy_cycle()
 
-    def change_proxy(self):
-        """Change to the next proxy in the rotation"""
-        if not self.proxy_list:
-            print("No proxies available")
-            self.proxies = None
-            self.current_proxy = None
-            return None
-
-        try:
-            self.current_proxy = next(self.proxy_cycle)
-            self._set_proxy(self.current_proxy)
-            self.request_count = 1
-            self.save_data()
-            return self.proxies
-        except StopIteration:
-            # If we've gone through all proxies, reset the cycle
-            if self.proxy_list:
-                self.proxy_cycle = cycle(self.proxy_list)
-                self.current_proxy = next(self.proxy_cycle)
-                self._set_proxy(self.current_proxy)
-                self.request_count = 1
-                self.save_data()
-                return self.proxies
-            else:
-                self.proxies = None
-                self.current_proxy = None
-                return None
-
     def _handle_request(self, method, url, **kwargs):
         """Handle request with proxy error handling"""
         retry_count = 0
         max_retries = 2
         
-        # Always change proxy for new request
-        if self.proxy_list:
+        # Check if we should change proxy for this request
+        should_change_proxy = kwargs.pop('change_proxy', True)
+        # Only change proxy if should_change_proxy is True
+        if should_change_proxy and self.proxy_list:
             try:
                 self.current_proxy = next(self.proxy_cycle)
             except StopIteration:
@@ -229,13 +204,15 @@ class MSB:
         match = re.search(pattern, html_content)
         return match.group(2) if match else None
     def login(self):
+        self.session = requests.Session()
+        self.save_cookies(self.session.cookies)
+
         url = "https://ebank.msb.com.vn/IBSRetail/Request"
         payload = {}
         headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
@@ -245,78 +222,27 @@ class MSB:
         'Pragma': 'no-cache',
         'Cache-Control': 'no-cache',
         }
+        if os.name != "posix":
+            headers['Accept-Encoding'] = 'gzip, deflate, br'
 
-        response = self._handle_request('GET', url, headers=headers, data=payload,allow_redirects=True)
-        pattern = r'dse_sessionId=(.*?)&dse_applicationId=(.*?)&dse_pageId=(.*?)&dse_operationName=(.*?)&dse_errorPage=(.*?)&dse_processorState=(.*?)&dse_nextEventName=(.*?)\';'
-        pattern_url = r'window.location.href = \'(.*?)\';'
-        match = re.search(pattern, response.text)
-        match_url = re.search(pattern_url, response.text)
-        
-        if match_url:
-            url1 = 'https://ebank.msb.com.vn'+match_url.group(1)
-            payload = {}
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Referer': 'https://ebank.msb.com.vn/IBSRetail/EstablishSession?&fromOpName=retailIndexProc&fromStateName=initial&fromEventName=start',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-            }
-            response = self._handle_request('GET', url1, headers=headers, data=payload)
-            base64_captcha_img = self.getCaptcha()
-            result = self.createTaskCaptcha(base64_captcha_img)
-            # captchaText = self.checkProgressCaptcha(json.loads(task)['taskId'])
-            # print(base64_captcha_img)
-            # print(result)
-            if 'prediction' in result and result['prediction']:
-                captchaText = result['prediction']
-            else:
-                return {"status": False, "msg": "Error solve captcha", "data": result}
-            payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode='+self.username+'&_userName='+self.username+'&_password='+self.password+'&_verifyCode='+captchaText
-            # payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode=11111&_userName=11111&_password=2222&_verifyCode=8461'            
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://ebank.msb.com.vn',
-            'Connection': 'keep-alive',
-            'Referer': url1,
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-            }
-
-            response = self._handle_request('POST', "https://ebank.msb.com.vn/IBSRetail/Request", headers=headers, data=payload)
-
-            pattern2 = r'dse_sessionId=(.*?)&dse_applicationId=(.*?)&dse_pageId=(.*?)&dse_operationName=(.*?)&dse_errorPage=(.*?)&dse_processorState=(.*?)&dse_nextEventName=(.*?)&toOpName=(.*?)\';'
-            pattern_url2 = r'window.location.href = \'(.*?)\';'
-            match2 = re.search(pattern2, response.text)
-            # with open("login.html", "w", encoding="utf-8") as file:
-            #     file.write(response.text)
-            match_url2 = re.search(pattern_url2, response.text)
-        
-            url2 = 'https://ebank.msb.com.vn'+match_url2.group(1)
-            payload = {}
-            headers = {
+        try:
+            response = self._handle_request('GET', url, headers=headers, data=payload, allow_redirects=True, change_proxy=False)
+            # with open('login_1.html', 'w', encoding='utf-8') as f:
+            #     f.write(response.text)
+            pattern = r'dse_sessionId=(.*?)&dse_applicationId=(.*?)&dse_pageId=(.*?)&dse_operationName=(.*?)&dse_errorPage=(.*?)&dse_processorState=(.*?)&dse_nextEventName=(.*?)\';'
+            pattern_url = r'window.location.href = \'(.*?)\';'
+            match = re.search(pattern, response.text)
+            match_url = re.search(pattern_url, response.text)
+            
+            if match_url:
+                url1 = 'https://ebank.msb.com.vn'+match_url.group(1)
+                payload = {}
+                headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
-                'Referer': 'https://ebank.msb.com.vn/IBSRetail/Request',
+                'Referer': 'https://ebank.msb.com.vn/IBSRetail/EstablishSession?&fromOpName=retailIndexProc&fromStateName=initial&fromEventName=start',
                 'Upgrade-Insecure-Requests': '1',
                 'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-Mode': 'navigate',
@@ -324,54 +250,114 @@ class MSB:
                 'Pragma': 'no-cache',
                 'Cache-Control': 'no-cache'
                 }
-            response = self._handle_request('GET', url2, headers=headers, data=payload)
-            check_error_message = self.check_error_message(response.text)
-            if check_error_message:
-                if 'Tài khoản hoặc mật khẩu không đúng' in check_error_message:
-                        return {
-                            'code': 444,
-                            'success': False,
-                            'message': check_error_message
-                            }
-                if 'Mã Tiếp tục không hợp lệ' in check_error_message:
-                        return {
-                            'code': 422,
-                            'success': False,
-                            'message': check_error_message
-                            }
-                if 'Tài khoản của quý khách đã bị khóa' in check_error_message:
-                        return {
-                            'code': 449,
-                            'success': False,
-                            'message': 'Blocked account!'
-                            }
-                return {
-                    'code': 400,
-                    'success': False,
-                    'message': check_error_message
+                if os.name != "posix":
+                    headers['Accept-Encoding'] = 'gzip, deflate, br'
+                response = self._handle_request('GET', url1, headers=headers, data=payload, change_proxy=False)
+                base64_captcha_img = self.getCaptcha()
+                result = self.createTaskCaptcha(base64_captcha_img)
+                if 'prediction' in result and result['prediction']:
+                    captchaText = result['prediction']
+                else:
+                    return {"status": False, "msg": "Error solve captcha", "data": result}
+                payload = 'dse_sessionId='+str(match.group(1))+'&dse_applicationId=-1&dse_pageId=2&dse_operationName=retailUserLoginProc&dse_errorPage=index.jsp&dse_processorState=initial&dse_nextEventName=start&orderId=&_userNameEncode='+self.username+'&_userName='+self.username+'&_password='+self.password+'&_verifyCode='+captchaText
+                headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Origin': 'https://ebank.msb.com.vn',
+                'Connection': 'keep-alive',
+                'Referer': url1,
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache'
                 }
-            else:
-                self.tokenNo = self.extract_tokenNo(response.text)
-                self.is_login = True
-                self.time_login = time.time()
-                self.save_data()
-                self.save_cookies(self.session.cookies)
-                return {
-                    'code': 200,
-                    'success': True,
-                    'message': 'Đăng nhập thành công',
-                    'data':{
-                        'tokenNo': self.tokenNo
+                if os.name != "posix":
+                    headers['Accept-Encoding'] = 'gzip, deflate, br'
+
+                response = self._handle_request('POST', "https://ebank.msb.com.vn/IBSRetail/Request", headers=headers, data=payload, change_proxy=False)
+                # with open('login_2.html', 'w', encoding='utf-8') as f:
+                #     f.write(response.text)
+                pattern2 = r'dse_sessionId=(.*?)&dse_applicationId=(.*?)&dse_pageId=(.*?)&dse_operationName=(.*?)&dse_errorPage=(.*?)&dse_processorState=(.*?)&dse_nextEventName=(.*?)&toOpName=(.*?)\';'
+                pattern_url2 = r'window.location.href = \'(.*?)\';'
+                match2 = re.search(pattern2, response.text)
+                match_url2 = re.search(pattern_url2, response.text)
+            
+                url2 = 'https://ebank.msb.com.vn'+match_url2.group(1)
+                payload = {}
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Connection': 'keep-alive',
+                    'Referer': 'https://ebank.msb.com.vn/IBSRetail/Request',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
                     }
-                    
-                }
-        else:
+                if os.name != "posix":
+                    headers['Accept-Encoding'] = 'gzip, deflate, br'
+                response = self._handle_request('GET', url2, headers=headers, data=payload, change_proxy=False)
+                check_error_message = self.check_error_message(response.text)
+                if check_error_message:
+                    if 'Tài khoản hoặc mật khẩu không đúng' in check_error_message:
+                            return {
+                                'code': 444,
+                                'success': False,
+                                'message': check_error_message
+                                }
+                    if 'Mã Tiếp tục không hợp lệ' in check_error_message:
+                            return {
+                                'code': 422,
+                                'success': False,
+                                'message': check_error_message
+                                }
+                    if 'Tài khoản của quý khách đã bị khóa' in check_error_message:
+                            return {
+                                'code': 449,
+                                'success': False,
+                                'message': 'Blocked account!'
+                                }
+                    return {
+                        'code': 400,
+                        'success': False,
+                        'message': check_error_message
+                    }
+                else:
+                    self.tokenNo = self.extract_tokenNo(response.text)
+                    self.is_login = True
+                    self.time_login = time.time()
+                    self.save_data()
+                    self.save_cookies(self.session.cookies)
+                    return {
+                        'code': 200,
+                        'success': True,
+                        'message': 'Đăng nhập thành công',
+                        'data':{
+                            'tokenNo': self.tokenNo
+                        }
+                    }
+            else:
+                return {
+                        'code': 500,
+                        'success': False,
+                        'message': "Unknown Error!",
+                        'data': response.text
+                    }
+        except Exception as e:
+            print(f"Login error: {str(e)}")
             return {
-                    'code': 500,
-                    'success': False,
-                    'message': "Unknown Error!",
-                    'data': response
-                }
+                'code': 500,
+                'success': False,
+                'message': f"Login error: {str(e)}"
+            }
 
     def get_accounts_list(self):
         payload = "acctType='CA'%2C'LN'%2C'SA'&status='ACTV'%2C'DORM'%2C'MATU'&tokenNo=" + self.tokenNo + "&lang=vi_VN"
@@ -379,7 +365,7 @@ class MSB:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
+            
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
             'Origin': 'https://ebank.msb.com.vn',
@@ -390,6 +376,8 @@ class MSB:
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache'
         }
+        if os.name != "posix":
+            headers['Accept-Encoding'] = 'gzip, deflate, br'
         try:
             response = self._handle_request('POST', "https://ebank.msb.com.vn/IBSRetail/account/list.do", headers=headers, data=payload, timeout=10)
             if response is None:
@@ -476,7 +464,7 @@ class MSB:
     def getCaptcha(self):
         url = 'https://ebank.msb.com.vn/IBSRetail/servlet/ImageServlet'
         headers = {}
-        response = self._handle_request('GET', url, headers=headers, timeout=15)
+        response = self._handle_request('GET', url, headers=headers, timeout=15, change_proxy=False)
         return base64.b64encode(response.content).decode('utf-8')
 
     def get_transactions(self, fromDate, toDate, retry=0):
@@ -491,7 +479,6 @@ class MSB:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.100.0',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'X-Requested-With': 'XMLHttpRequest',
             'Origin': 'https://ebank.msb.com.vn',
@@ -502,6 +489,8 @@ class MSB:
             'Pragma': 'no-cache',
             'Cache-Control': 'no-cache'
         }
+        if os.name != "posix":
+            headers['Accept-Encoding'] = 'gzip, deflate, br'
         response = self._handle_request('POST', "https://ebank.msb.com.vn/IBSRetail/history/byAccount.do", headers=headers, data=payload, timeout=15)
         
         if response.status_code == 401:
